@@ -1,0 +1,130 @@
+
+{% block content %}
+{% set rows = tab.rows %}
+{% set url = tab.return_url %}
+{% set chart_data = tab.extra[0].chart_data if tab.extra and tab.extra[0] and tab.extra[0].chart_data is defined else {} %}
+
+<div class="container mt-5">
+  <h2 class="mb-4 fw-semibold">{{ tab.label }}</h2>
+
+  <div class="row">
+    <!-- Left: Summary Cards -->
+    <div class="col-lg-8">
+      <div class="row g-4">
+        {% for t in rows %}
+        <div class="col-md-6 col-xl-4">
+          <a href="{{ url_for(url, tab_id=t.tab_id) }}" class="card-link">
+            <div class="card text-white shadow-lg h-100 tile" style="background: {{ t.color }};">
+              <div class="card-body text-center">
+                <h5 class="card-title mb-2">{{ t.label }}</h5>
+                <h2 class="display-6 fw-bold">{{ t.value }}</h2>
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Right: Chart Section -->
+    <div class="col-lg-4 mt-4 mt-lg-0">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title text-center mb-3">
+
+              {{chart_data.title}}
+
+          </h5>
+
+          <canvas id="summaryChart" height="250"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('summaryChart');
+
+// fallback data if none provided
+const chartLabels = {{ chart_data.labels|default(['No Data'])|tojson }};
+const chartValues = {{ chart_data.data|default([0])|tojson }};
+const chartColors = {{ chart_data.colors|default(['#cccccc'])|tojson }};
+const chartType = "{{ chart_data.chart_type|default('bar') }}";
+const chartTitle = "{{ chart_data.title|default('Overview') }}";
+
+new Chart(ctx, {
+  type: chartType,
+  data: {
+    labels: chartLabels,
+    datasets: [{
+      label: chartTitle,
+      data: chartValues,
+      backgroundColor: chartColors,
+      borderWidth: 1,
+      borderColor: '#444'
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: chartType !== 'bar', position: 'bottom' },
+      title: { display: false }
+    },
+    scales: (chartType === 'bar' || chartType === 'line')
+      ? { y: { beginAtZero: true } } : {}
+  }
+});
+</script>
+
+
+
+<style>
+  .tile {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border: none;
+    border-radius: 16px;
+  }
+
+  .tile:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  }
+
+  .card-body {
+    padding: 1.5rem 0.5rem;
+  }
+
+  h2, h5 {
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .display-6 {
+    font-size: 2.2rem;
+  }
+
+  /* Make entire card clickable */
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .card-link:hover {
+    text-decoration: none;
+  }
+
+  .card-link:active, .card-link:focus {
+    outline: none;
+  }
+
+  .card-link .tile:hover {
+    cursor: pointer;
+  }
+</style>
+
+
+
+{% endblock %}

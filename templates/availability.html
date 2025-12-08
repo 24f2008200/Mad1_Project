@@ -1,0 +1,256 @@
+{% extends "index.html" %}
+{% block title %}Doctor Availability - HMS{% endblock %}
+
+{% block styles %}
+<style>
+  /* Grid layout for slots */
+  .slot-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 8px;
+    margin-top: 6px;
+  }
+
+  .slot-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 0;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.9rem;
+  }
+
+  /* --- Slot States --- */
+.slot-free    { background-color: #c8f7c5; border: 1px solid #28a745; } /* green */
+.slot-busy    { background-color: #ffe8a1; border: 1px solid #ffc107; } /* orange */
+.slot-engaged { background-color: #f8d7da; border: 1px solid #dc3545; } /* red */
+
+  .slot-free:hover {
+    background-color: #c6eec6;
+  }
+
+  .slot-busy:hover {
+    background-color: #ffe8a1;
+  }
+
+  /* Selected visual (for manual busy toggle) */
+  .slot-selected {
+    background-color: #ffcc80;
+    /* orange highlight */
+    border-color: #ff9800;
+    color: #4a2500;
+  }
+
+  .day-number {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  table.calendar {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+  }
+
+  table.calendar th,
+  table.calendar td {
+    border: 1px solid #dee2e6;
+    vertical-align: top;
+    padding: 8px;
+  }
+
+  table.calendar th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<h3>Mark Your Unavailable Days</h3>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs" id="monthTabs" role="tablist">
+  {% for month_start, month_end, slot_map in months %}
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if loop.first %}active{% endif %}" id="tab-{{ loop.index }}" data-bs-toggle="tab"
+      data-bs-target="#month-{{ loop.index }}" type="button" role="tab">
+      {{ month_start.strftime('%B %Y') }}
+    </button>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content mt-3">
+  {% for month_start, weeks, slot_map in months %}
+  <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="month-{{ loop.index }}">
+    <div class="form-check mb-2">
+      <input class="form-check-input select-all" type="checkbox" id="selectAll-{{ loop.index }}">
+      <label class="form-check-label" for="selectAll-{{ loop.index }}">
+        Select all slots in {{ month_start.strftime('%B %Y') }}
+      </label>
+    </div>
+
+    <table class="table table-bordered text-center align-middle calendar">
+      <thead class="table-light">
+        <tr>
+          <th>Mon</th>
+          <th>Tue</th>
+          <th>Wed</th>
+          <th>Thu</th>
+          <th>Fri</th>
+          <th>Sat</th>
+          <th>Sun</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for week in weeks %}
+        <tr>
+          {% for d in week %}
+          <td style="min-width:120px;">
+            {% if d.month == month_start.month %}
+            <div class="day-number">{{ d.strftime('%d/%m') }}</div>
+
+            <!-- Morning -->
+            <div class="slot-options">
+              {% for s in Sessions if "A" in s.value %}
+              {% set spot = slot_map.get((d, s.value)) %}
+              {% set slot_class =
+              "slot-engaged" if spot and not spot.is_free
+              else "slot-busy" if spot and not spot.available
+              else "slot-free"
+              %}
+              <div class="slot-box {{ slot_class }}" data-date="{{ d.isoformat() }}" data-session="{{ s.value }}">
+                {{ s.value }}
+              </div>
+              {% endfor %}
+            </div>
+
+
+            <!-- Evening -->
+            <div class="slot-options">
+              {% for s in Sessions if "P" in s.value %}
+              {% set spot = slot_map.get((d, s.value)) %}
+              {% set slot_class =
+              "slot-engaged" if spot and not spot.is_free
+              else "slot-busy" if spot and not spot.available
+              else "slot-free"
+              %}
+              <div class="slot-box {{ slot_class }}" data-date="{{ d.isoformat() }}" data-session="{{ s.value }}">
+                {{ s.value }}
+              </div>
+              {% endfor %}
+            </div>
+
+
+            {% else %}
+            <div class="text-muted">–</div>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mb-3">
+  <button class="btn btn-primary me-2" id="saveBtn">Save</button>
+  <button class="btn btn-secondary" id="exitBtn">Exit</button>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+
+    // --- MULTI-SELECTION TOGGLE ---
+    document.querySelectorAll(".slot-box").forEach(box => {
+      if (!box.classList.contains("slot-engaged")) { // skip booked slots
+        box.addEventListener("click", function () {
+          // Toggle only between free <-> busy
+          if (box.classList.contains("slot-free")) {
+            box.classList.remove("slot-free");
+            box.classList.add("slot-busy", "slot-selected");
+          } else if (box.classList.contains("slot-busy") || box.classList.contains("slot-selected")) {
+            box.classList.remove("slot-busy", "slot-selected");
+            box.classList.add("slot-free");
+          }
+        });
+      }
+    });
+
+    // --- SELECT ALL ---
+    document.querySelectorAll(".select-all").forEach(chk => {
+      chk.addEventListener("change", function () {
+        const tabId = this.id.replace("selectAll-", "");
+        const tabPane = document.querySelector("#month-" + tabId);
+        tabPane.querySelectorAll(".slot-box").forEach(box => {
+          if (!box.classList.contains("slot-engaged")) {
+            if (this.checked) {
+              box.classList.remove("slot-free");
+              box.classList.add("slot-busy", "slot-selected");
+            } else {
+              box.classList.remove("slot-busy", "slot-selected");
+              box.classList.add("slot-free");
+            }
+          }
+        });
+      });
+    });
+
+    // --- SAVE ---
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const updates = [];
+      document.querySelectorAll(".slot-box").forEach(box => {
+        if (!box.classList.contains("slot-engaged")) {
+          updates.push({
+            date: box.dataset.date,
+            session: box.dataset.session,
+            available: box.classList.contains("slot-free") // true if free
+          });
+        }
+      });
+
+      fetch("/doctor/edit_availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doctor_id: "{{ doctor.id }}", slots: updates }),
+        credentials: "include"
+      })
+        .then(response => {
+          if (!response.ok) throw new Error("Network error");
+          return response.text();   // ← get full HTML, not JSON
+        })
+        .then(html => {
+          // Replace the current document with the new one returned by Flask
+          document.open();
+          document.write(html);
+          document.close();
+        })
+        .catch(err => {
+          console.error("Error updating availability:", err);
+          alert("Something went wrong. Please try again.");
+        });
+
+    });
+
+    // --- EXIT BUTTON ---
+    document.getElementById("exitBtn").addEventListener("click", () => {
+      window.location.href = "{{ url_for('doctor.doctor_dashboard', tab_id=1) }}";
+    });
+  });
+</script>
+{% endblock %}

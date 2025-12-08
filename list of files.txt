@@ -1,0 +1,53 @@
+index.html - app.py login get/post. on post, choose admin/patient/doctor dashboard.
+login.html
+dashboard_base.html
+_macros.html
+register.html
+confirmation.html
+
+                            for doctor role:
+                                Availability - doctor.availability - 
+availability.html -> /doctor/edit_availability -> home
+ 
+                                Edit Profile - doctor.edit_doctor -
+form_base.html -> home
+                    
+                                In Patients tab , for each row - patient.patient_history -
+patient_history.html -> home ?
+                                All appointments tab: update -> /update_appointment/<int:appointment_id> ->
+                                form_base.html
+
+                            for patients role:
+                                tab - department - view button -> admin.department_details -
+dashboard_base.html -> doctor.doctor_availability ( by patients) -> booking.html
+booking.html -> patient.appointments_book or patient.patient_dashboard -> home
+                                 
+
+                                Edit Profile : 
+form_base.html -> home
+
+
+                            for admin role:
+                                Add Dept : admin.add_department -> form_base.html -> home
+                                Add doc: admin/doctors/new -> form_base.html -> home
+                                Edit Profile: admin.edit_patient/<int:patient_id> - > form_base.html -> home
+                                Tab:
+                                    Doctors:
+                                        Edit: doctor.edit - > form_base.html -> home
+                                        Delete: admin.delete_doctor/<int:doctor_id> - > confirmation.html -> home
+                                        Blacklist: admin.blacklist_doctor/<int:doctor_id> -> confirmation.html -> home
+                                    Patients:
+                                        Edit: admin.edit_patient/<int:patient_id> - > form_base.html -> home
+                                        Delete: admin.delete_patient/<int:patient_id> - > confirmation.html -> home
+                                        Blacklist: admin.blacklist_patient/<int:patient_id> -> confirmation.html -> home
+                                    Departments:
+                                        Edit: admin.edit_department/<int:department_id> - > form_base.html -> home
+                                        Delete: admin.delete_department/<int:department_id> - > confirmation.html -> home
+                                    Appoinments:
+                                        View: patient.edit_appointment/<int:appointment_id> - > form_base.html -> home
+                                        Delete: patient.delete_appointmen/<int:appointment_id> - > confirmation.html -> home
+                                    Search:
+search.html                            search.html
+search_tab.html
+                                    summary:
+summary.html                                    

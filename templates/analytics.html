@@ -1,0 +1,91 @@
+<div class="container mt-4">
+
+    <div class="row mb-3">
+        <div class="col-md-4">
+            <h4>Billing Trend</h4>
+        </div>
+        <div class="col-md-4">
+
+            <label>Select Doctor:</label>
+            <select id="doctorSelect" class="form-select" {% if current_user.role == 'doctor' %} disabled {% else %} {% endif %}>
+                <option value="">-- Select --</option>
+                {% for d in tab.extra[1] %}
+                <option value="{{ d.id }}">{{ d.name+" "+d.last_name }} </option>
+                {% endfor %}
+            </select>
+
+        </div>
+        <div class="col-md-4">
+            {% if current_user.role != 'doctor' %}
+            <label>Select Department:</label>
+            {% else %}
+            <label>Select Patient:</label>
+            {% endif %}
+            <select id="deptSelect" class="form-select">
+                <option value="">-- Select --</option>
+                {% for dept in tab.extra[0] %}
+                <option value="{{ dept.id }}">{{ dept.name }} {% if current_user.role == 'doctor' %} {{" "+dept.last_name}}{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <canvas id="billingChart" width="600" height="300"></canvas>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const ctx = document.getElementById('billingChart');
+        let chart;
+
+        async function fetchData(filterType, filterId) {
+            const url = `/api/billing_data?type=${filterType}&id=${filterId}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            return data; // { labels: [...], values: [...] }
+        }
+
+        async function updateChart(type, id,title_name) {
+            const data = await fetchData(type, id);
+            if (chart) chart.destroy();
+            const chartType = data.labels.length > 1 ? 'line' : 'bar';
+            chart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Total Billing (₹)',
+                        data: data.values,
+                        borderColor: '#007bff',
+                        backgroundColor: 'rgba(0,123,255,0.2)',
+                        tension: 0.2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: {
+            title: {
+                display: true,
+                text: title_name,
+                padding: {
+                    top: 10,
+                    bottom: 30
+                }
+            }
+        }
+                }
+            });
+            chart.options.plugins.title.text = title_name;
+            chart.update();
+        }
+
+        document.getElementById('doctorSelect').addEventListener('change', e => {
+            if (e.target.value) updateChart('doctor', e.target.value,e.target.options[e.target.selectedIndex].text);
+        });
+
+        document.getElementById('deptSelect').addEventListener('change', e => {
+            if (e.target.value) updateChart('department', e.target.value,e.target.options[e.target.selectedIndex].text);
+        });
+    });
+</script>

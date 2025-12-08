@@ -1,0 +1,239 @@
+openapi: 3.0.3
+info:
+  title: PBN Systems  HMS API Docs
+  version: 1.0.0
+  description: |
+    REST API for Hospital Management System.
+    Supports both session auth (web) and Bearer token auth (API clients).
+
+servers:
+  - url: /api
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Doctor:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        department: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        experience: { type: integer, nullable: true }
+        status: { type: string }
+    DoctorCreate:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string }
+        last_name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        experience: { type: integer }
+        department_id: { type: integer }
+
+    Appointment:
+      type: object
+      properties:
+        id: { type: integer }
+        doctor_id: { type: integer }
+        patient_id: { type: integer }
+        date: { type: string, format: date }
+        status: { type: string }
+        bill: { type: number, nullable: true }
+    AppointmentCreate:
+      type: object
+      required: [doctor_id, date]
+      properties:
+        doctor_id: { type: integer }
+        date: { type: string, format: date }
+
+paths:
+
+  /login:
+    post:
+      summary: Obtain API access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Token returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  user_id: { type: integer }
+                  role: { type: string }
+        '401':
+          description: Invalid credentials
+
+  /doctors:
+    get:
+      summary: List all doctors
+      responses:
+        '200':
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Doctor'
+
+    post:
+      summary: Create doctor (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorCreate'
+      responses:
+        '201':
+          description: Doctor created
+
+  /doctors/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+
+    get:
+      summary: Get doctor by ID
+      responses:
+        '200':
+          description: Doctor details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Doctor'
+
+    put:
+      summary: Update doctor (admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Doctor'
+      responses:
+        '200':
+          description: Doctor updated
+
+    delete:
+      summary: Soft delete doctor (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Doctor deleted
+
+  /appointments:
+    get:
+      summary: List all appointments
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+
+    post:
+      summary: Book appointment (patient only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+      responses:
+        '201':
+          description: Appointment booked
+
+  /appointments/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+
+    get:
+      summary: Get appointment by ID
+      responses:
+        '200':
+          description: Appointment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+
+    put:
+      summary: Update appointment status (doctor only)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [booked, completed, cancelled]
+      responses:
+        '200':
+          description: Appointment status updated
+
+    delete:
+      summary: Delete appointment (admin only)
+      responses:
+        '200':
+          description: Appointment deleted
+
+  /billing_data:
+    get:
+      summary: Get billing aggregated data
+      parameters:
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: id
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Billing chart data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  labels:
+                    type: array
+                    items: { type: string }
+                  values:
+                    type: array
+                    items: { type: number }

@@ -1,0 +1,117 @@
+// Base shared timestamps (not explicitly modeled in ERD)
+/////////////////////////////////////////////////////////
+
+Table users {
+  id integer [primary key]
+  name varchar
+  last_name varchar
+  dob date
+  email varchar [unique, not null]
+  phone varchar
+  address text
+  role varchar
+  password_hash varchar
+  status varchar
+  api_token varchar
+  type varchar
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table admins {
+  id integer [primary key, ref: > users.id] // inherits users
+}
+
+Table departments {
+  id integer [primary key]
+  name varchar [unique, not null]
+  description text
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table doctors {
+  id integer [primary key, ref: > users.id]
+  department_id integer [ref: > departments.id]
+  license_number varchar
+  experience integer
+  speciality varchar
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table patients {
+  id integer [primary key, ref: > users.id]
+  medical_history text
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table availability {
+  id integer [primary key]
+  doctor_id integer [ref: > doctors.id]
+  date date
+  session varchar
+  ever_active boolean
+  available boolean
+  is_free boolean
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table appointments {
+  id integer [primary key]
+  patient_id integer [not null, ref: > patients.id]
+  slot_id integer [not null, ref: > availability.id]
+  doctor_id integer [not null, ref: > doctors.id]
+  status varchar
+  reason text
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table treatments {
+  id integer [primary key]
+  appointment_id integer [not null, ref: > appointments.id]
+  diagnosis text
+  prescription text
+  notes text
+  performed_at timestamp
+  visit_type text
+  tests text
+  medicines text
+  consultation_fee integer
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+Table alerts {
+  id integer [primary key]
+  patient_id integer [not null, ref: > patients.id]
+  doctor_id integer [not null, ref: > doctors.id]
+  direction boolean
+  message text
+  status varchar
+  created_at timestamp
+  updated_at timestamp
+  last_seen timestamp
+}
+
+//////////////////////////////////////////////////////////
+// Relationships (explicit)
+//////////////////////////////////////////////////////////
+
+Ref: doctors.department_id > departments.id
+Ref: appointments.patient_id > patients.id
+Ref: appointments.doctor_id > doctors.id
+Ref: appointments.slot_id > availability.id
+Ref: treatments.appointment_id > appointments.id
+Ref: alerts.patient_id > patients.id
+Ref: alerts.doctor_id > doctors.id

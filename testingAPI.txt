@@ -1,0 +1,35 @@
+To test API
+
+1) Login POST  http://127.0.0.1:5000/api/login
+
+{
+"email": "admin@example.com",
+ "password":"123"
+}
+2)
+GET http://127.0.0.1:5000/api/doctors
+
+3) Create a doctor
+POST http://127.0.0.1:5000/api/doctors
+
+{
+  "name": "Dr.API",
+  "last_name": "string",
+  "email": "bla@blabla.com",
+"dob":"1990-10-5",
+  "phone": "string",
+"license_number":"asd123",
+
+  "experience": 10,
+  "department_id": 3,
+  "password":"123"
+}
+
+4) login as  patient 
+GET http://127.0.0.1:5000/api/appointments/
+
+5) PUT http://127.0.0.1:5000/api/appointments/xxxxx
+{ "status": "cancelled",}
+
+6) Login as admin
+DELETE http://127.0.0.1:5000/api/appointments/xxxxx
